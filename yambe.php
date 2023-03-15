@@ -138,19 +138,9 @@ else
 // Function to build a url from text
 function linkFromText($page, $displayText, $nsID=0)
 {
-global $wgVersion;
-
 $title = Title::newFromText (trim($page), $nsID);
-$oldVersion = version_compare( $wgVersion, '1.28', '<=' );
 
-if ( $oldVersion ) {
-  global $wgUser;
-
-  $skin = $wgUser->getSkin();
-  if (!is_null($title)) return $skin->makeKnownLinkObj($title, $displayText, "");
-  } else {
-    if (!is_null($title)) return MediaWiki\MediaWikiServices::getInstance()->getLinkRenderer()->makeKnownLink($title, $displayText);
-  }
+if (!is_null($title)) return MediaWiki\MediaWikiServices::getInstance()->getLinkRenderer()->makeKnownLink($title, $displayText);
 
 return "";
 }
