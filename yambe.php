@@ -149,7 +149,7 @@ function pageExists($page, $nsID=0)
 {
 $page = str_replace(" ", "_", $page);
 
-$dbr = wfGetDB( DB_SLAVE );
+$dbr = wfGetDB( DB_REPLICA );
 
 if ($dbr->selectField( 'page', 'page_id',
     array("page_title" => $page, "page_namespace" => $nsID),
@@ -172,7 +172,7 @@ $par['data']= "";
 $par['exists']= false;
 $par['self']="";
 
-$dbr = wfGetDB( DB_SLAVE );
+$dbr = wfGetDB( DB_REPLICA );
 
 $pgName = str_replace(" ", "_", $pgName);
 
