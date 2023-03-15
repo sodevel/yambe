@@ -151,10 +151,21 @@ $page = str_replace(" ", "_", $page);
 
 $dbr = wfGetDB( DB_REPLICA );
 
-if ($dbr->selectField( 'page', 'page_id',
-    array("page_title" => $page, "page_namespace" => $nsID),
-   __METHOD__ ) == "") return false;
-else return true;
+if (
+  !$dbr->newSelectQueryBuilder()
+    ->select('page_id')
+    ->from('page')
+    ->where([
+      "page_namespace" => $nsID,
+      "page_title" => $page
+    ])
+    ->caller(__METHOD__)
+    ->fetchField()
+) {
+  return false;
+}
+
+return true;
 }
 
 // Function checks that the parent page exists and if so builds a link to it
@@ -176,27 +187,25 @@ $dbr = wfGetDB( DB_REPLICA );
 
 $pgName = str_replace(" ", "_", $pgName);
 
-$res = $dbr->select(array ("revision", "text", "page",),
-                    "old_text",
-                     array( "page_title" =>$pgName, "page_namespace" => $ns),
-                     __METHOD__,
-                     array ("ORDER BY"=>"rev_id desc limit 1"),
-                     array("text" => array ("LEFT JOIN", "old_id=rev_text_id" ),
-                           "revision" => array( 'LEFT JOIN', 'rev_page=page_id')));
+$res = $dbr->newSelectQueryBuilder()
+  ->select('old_text')
+  ->from('text')
+  ->join('content', null, 'CONCAT(\'tt:\', old_id)=content_address')
+  ->join('slots', null, 'content_id=slot_content_id')
+  ->join('slot_roles', null, 'slot_role_id=role_id AND role_name=\'main\'')
+  ->join('revision', null, 'slot_revision_id=rev_id')
+  ->join('page', null, 'rev_id=page_latest')
+  ->where([
+    "page_namespace" => $ns,
+    "page_title" => $pgName
+  ])
+  ->caller(__METHOD__)
+  ->fetchRow();
 
-// Check to see if the query worked
-if ($res)
-  {
-  if ($dbr->numRows( $res) > 0)
-    {
-    // We've got the parent text. Now locate it's parent tag
-    $row = $dbr->fetchRow( $res );
-    $text = $row["old_text"];
+if ($res) {
+  $par = yambeUnpackTag($res->old_text);
+}
 
-    $dbr->freeResult( $res );
-    $par = yambeUnpackTag ($text);
-    }
-  }
 return $par;
 }
 
