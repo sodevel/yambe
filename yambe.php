@@ -47,7 +47,7 @@ function yambeBreadcrumb ($data, $args, $parser)
 {
 global $bcDelim, $maxCountBack, $overflowPre, $selfLink;
 
-$parser->disableCache();
+$parser->getOutput()->updateCacheExpiry(0);
 $pgTitle = $parser->getTitle();
 
 // Grab the self argument if it exists
