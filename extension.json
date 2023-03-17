@@ -31,8 +31,8 @@
 	},
 	"config": {
 		"YambeURLSplit": {
-			"description": "Where to split the URL to find the page name. Usually either /index.php/ or /wiki/.",
-			"value": "/index.php/"
+			"description": "Where to split the URL to find the page name. Usually either /w/index.php?title= or /wiki/.",
+			"value": "/w/index.php?title="
 		},
 		"YambeBCDelim": {
 			"description": "Character to separate the breadcrumb elements.",

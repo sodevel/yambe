@@ -9,6 +9,7 @@ use TitleParser;
 use MediaWiki\Hook\ParserFirstCallInitHook;
 use MediaWiki\Hook\EditFormPreloadTextHook;
 use Parser;
+use MalformedTitleException;
 
 use SimpleXMLElement;
 use Title;
@@ -86,7 +87,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 						$breadcrumb = $url . $bcDelim . $breadcrumb;
 
 						// Get the next parent from the database
-						$par = $this->getTagFromParent($page['title'], $page['namespaceid']);
+						$par = $this->getTagFromPage($page['title'], $page['namespaceid']);
 
 						// Check to see if we've tracked back too far
 						if ($count >= $maxCountBack) {
@@ -112,25 +113,33 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 
 	public function onEditFormPreloadText(&$text, $title)
 	{
-		$URLSplit = $this->config->get('YambeURLSplit');
+		// Since there is no parent relationship available, assume the edit was started from a red-link on the parent page
+		// and extract that page from the referer URL.
+		$urlSplit = $this->config->get('YambeURLSplit');
 
-		if ($URLSplit == "/") {
+		if ($urlSplit == '/') {
 			$url = parse_url($_SERVER['HTTP_REFERER']);
-			$parent = substr($url["path"], 1);
+			$parentPath = substr($url['path'], 1);
 		} else {
-			$arr = explode($URLSplit, $_SERVER['HTTP_REFERER']);
-			$parent = $arr[1];
+			$parentPath = end(explode($urlSplit, $_SERVER['HTTP_REFERER']));
 		}
 
-		// If the code breaks on this line check declaration of $URLSplit on line 23 matches your wiki
-		$page = $this->splitName($parent);
-		$par = $this->getTagFromParent($page['title'], $page['namespaceid']);
+		try {
+			$parentTitle = $this->titleParser->parseTitle($parentPath);
+			$parentKey = $parentTitle->getDBkey();
+			$parentNs = $parentTitle->getNamespace();
+			$tag = $this->getTagFromPage($parentKey, $parentNs);
+			if ($tag['exists']) {
+				if ($tag['self'] != '') {
+					$parentText = $tag['self'];
+				} else {
+					$parentText = $parentTitle->getText();
+				}
 
-		if ($par['exists']) {
-			if ($par['self'] != "") $display = $par['self'];
-			else $display = str_replace("_", " ", $page['title']);
-
-			$text = "<yambe:breadcrumb>$parent|$display</yambe:breadcrumb>";
+				$text = "<yambe:breadcrumb>$parentKey|$parentText</yambe:breadcrumb>";
+			}
+		} catch (MalformedTitleException) {
+			// Ignore
 		}
 
 		return true;
@@ -190,7 +199,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	}
 
 	// Get the parents tag
-	private function getTagFromParent($pgName, $ns = 0)
+	private function getTagFromPage($pgName, $ns = 0)
 	{
 		$par['data'] = "";
 		$par['exists'] = false;
