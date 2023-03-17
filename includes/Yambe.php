@@ -9,7 +9,6 @@ use MediaWiki\Hook\ParserFirstCallInitHook;
 use MediaWiki\Hook\EditFormPreloadTextHook;
 use Parser;
 
-use MediaWiki\MediaWikiServices;
 use SimpleXMLElement;
 use Title;
 
@@ -149,8 +148,9 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	private function linkFromText($page, $displayText, $nsID = 0)
 	{
 		$title = Title::newFromText(trim($page), $nsID);
-
-		if (!is_null($title)) return MediaWikiServices::getInstance()->getLinkRenderer()->makeKnownLink($title, $displayText);
+		if (!is_null($title)) {
+			return $this->link->makeKnownLink($title, $displayText);
+		}
 
 		return "";
 	}
@@ -159,10 +159,10 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	{
 		$page = str_replace(" ", "_", $page);
 
-		$dbr = wfGetDB(DB_REPLICA);
+		$db = $this->dlb->getConnection(ILoadBalancer::DB_REPLICA);
 
 		if (
-			!$dbr->newSelectQueryBuilder()
+			!$db->newSelectQueryBuilder()
 				->select('page_id')
 				->from('page')
 				->where([
@@ -193,11 +193,11 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		$par['exists'] = false;
 		$par['self'] = "";
 
-		$dbr = wfGetDB(DB_REPLICA);
+		$db = $this->dlb->getConnection(ILoadBalancer::DB_REPLICA);
 
 		$pgName = str_replace(" ", "_", $pgName);
 
-		$res = $dbr->newSelectQueryBuilder()
+		$res = $db->newSelectQueryBuilder()
 			->select('old_text')
 			->from('text')
 			->join('content', null, 'CONCAT(\'tt:\', old_id)=content_address')
