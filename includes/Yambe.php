@@ -5,6 +5,7 @@ namespace MediaWiki\Extension\Yambe;
 use Config;
 use Wikimedia\Rdbms\ILoadBalancer;
 use MediaWiki\Linker\LinkRenderer;
+use TitleParser;
 use MediaWiki\Hook\ParserFirstCallInitHook;
 use MediaWiki\Hook\EditFormPreloadTextHook;
 use Parser;
@@ -16,14 +17,16 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 {
 
 	private $config;
-	private $dlb;
-	private $link;
+	private $loadBalancer;
+	private $linkRenderer;
+	private $titleParser;
 
-	public function __construct(Config $config, ILoadBalancer $dlb, LinkRenderer $link)
+	public function __construct(Config $config, ILoadBalancer $loadBalancer, LinkRenderer $linkRenderer, TitleParser $titleParser)
 	{
 		$this->config = $config;
-		$this->dlb = $dlb;
-		$this->link = $link;
+		$this->loadBalancer = $loadBalancer;
+		$this->linkRenderer = $linkRenderer;
+		$this->titleParser = $titleParser;
 	}
 
 	public function onParserFirstCallInit($parser)
@@ -149,7 +152,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	{
 		$title = Title::newFromText(trim($page), $nsID);
 		if (!is_null($title)) {
-			return $this->link->makeKnownLink($title, $displayText);
+			return $this->linkRenderer->makeKnownLink($title, $displayText);
 		}
 
 		return "";
@@ -159,7 +162,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	{
 		$page = str_replace(" ", "_", $page);
 
-		$db = $this->dlb->getConnection(ILoadBalancer::DB_REPLICA);
+		$db = $this->loadBalancer->getConnection(ILoadBalancer::DB_REPLICA);
 
 		if (
 			!$db->newSelectQueryBuilder()
@@ -193,7 +196,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		$par['exists'] = false;
 		$par['self'] = "";
 
-		$db = $this->dlb->getConnection(ILoadBalancer::DB_REPLICA);
+		$db = $this->loadBalancer->getConnection(ILoadBalancer::DB_REPLICA);
 
 		$pgName = str_replace(" ", "_", $pgName);
 
