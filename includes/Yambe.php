@@ -13,7 +13,6 @@ use TitleValue;
 use MalformedTitleException;
 
 use SimpleXMLElement;
-use Title;
 
 class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 {
@@ -154,27 +153,6 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	}
 
 
-	// Function to get namespace id from name
-	private function getNamespaceID($namespace)
-	{
-		if ($namespace == "") return 0;
-		else {
-			$ns = new MWNamespace();
-			return $ns->getCanonicalIndex(trim(strtolower($namespace)));
-		}
-	}
-
-	// Function to build a url from text
-	private function linkFromText($page, $displayText, $nsID = 0)
-	{
-		$title = Title::newFromText(trim($page), $nsID);
-		if (!is_null($title)) {
-			return $this->linkRenderer->makeKnownLink($title, $displayText);
-		}
-
-		return "";
-	}
-
 	private function pageExists($page, $nsID = 0)
 	{
 		$page = str_replace(" ", "_", $page);
@@ -196,14 +174,6 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		}
 
 		return true;
-	}
-
-	// Function checks that the parent page exists and if so builds a link to it
-	private function yambeMakeURL($page, $display)
-	{
-		if ($this->pageExists($page['title'], $page['namespaceid']))
-			return $this->linkFromText($page['title'], $display, $page['namespaceid']);
-		else return "";
 	}
 
 	// Get the parents tag
@@ -237,22 +207,6 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		}
 
 		return $par;
-	}
-
-	private function splitName($in)
-	{
-		if (substr_count($in, ":")) {
-			// Parent name includes Namespace - grab the page name out for display element
-			$fullName  = explode(":", $in);
-			$page['title']     = str_replace(" ", "_", $fullName[1]);
-			$page['namespace'] = $fullName[0];
-			$page['namespaceid'] = $this->getNamespaceID($fullName[0]);
-		} else {
-			$page['title']     = str_replace(" ", "_", $in);
-			$page['namespace'] = "";
-			$page['namespaceid'] = 0;
-		}
-		return $page;
 	}
 
 	// Bit of a kludge to get data and arguments from a yambe tag
