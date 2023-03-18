@@ -80,9 +80,6 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 					break;
 				}
 				$parentText = array_shift($parent);
-				if (is_null($parentText)) {
-					$parentText = '';
-				}
 
 				$parentTitle = $this->titleParser->parseTitle($parentPath);
 				// Check link not already in stored in list to prevent circular references
