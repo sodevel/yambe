@@ -9,6 +9,7 @@ use Wikimedia\Rdbms\ILoadBalancer;
 use TitleParser;
 use MediaWiki\Linker\LinkRenderer;
 use Parser;
+use PPFrame;
 use TitleValue;
 use MalformedTitleException;
 
@@ -36,7 +37,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		$parser->setHook('yambe:breadcrumb', [$this, 'renderBreadcrumb']);
 	}
 
-	public function renderBreadcrumb($input, array $args, Parser $parser)
+	public function renderBreadcrumb($input, array $args, Parser $parser, PPFrame $frame)
 	{
 		$bcDelim = $this->config->get('YambeBCDelim');
 		$maxCountBack = $this->config->get('YambeMaxCountBack');
