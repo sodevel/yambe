@@ -16,11 +16,11 @@ use SimpleXMLElement;
 
 class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 {
-
 	private $config;
 	private $loadBalancer;
 	private $titleParser;
 	private $linkRenderer;
+
 
 	public function __construct(Config $config, ILoadBalancer $loadBalancer, TitleParser $titleParser, LinkRenderer $linkRenderer)
 	{
@@ -29,6 +29,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		$this->titleParser = $titleParser;
 		$this->linkRenderer = $linkRenderer;
 	}
+
 
 	public function onParserFirstCallInit($parser)
 	{
