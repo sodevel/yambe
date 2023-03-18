@@ -137,12 +137,12 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			if (!is_null($tag)) {
 				$selfText = $tag->breadcrumb->attributes()->{'self'};
 				if ($selfText != '') {
-					$parentText = $selfText;
+					$parentValue = $parentKey . '|' . $selfText;
 				} else {
-					$parentText = $parentTitle->getText();
+					$parentValue = $parentKey;
 				}
 
-				$text = "<yambe:breadcrumb>$parentKey|$parentText</yambe:breadcrumb>";
+				$text = "<yambe:breadcrumb>$parentValue</yambe:breadcrumb>";
 			}
 		} catch (MalformedTitleException) {
 			// Ignore
