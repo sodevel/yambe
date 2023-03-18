@@ -2,12 +2,12 @@
 
 namespace MediaWiki\Extension\Yambe;
 
-use Config;
-use Wikimedia\Rdbms\ILoadBalancer;
-use MediaWiki\Linker\LinkRenderer;
-use TitleParser;
 use MediaWiki\Hook\ParserFirstCallInitHook;
 use MediaWiki\Hook\EditFormPreloadTextHook;
+use Config;
+use Wikimedia\Rdbms\ILoadBalancer;
+use TitleParser;
+use MediaWiki\Linker\LinkRenderer;
 use Parser;
 use TitleValue;
 use MalformedTitleException;
@@ -19,15 +19,15 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 
 	private $config;
 	private $loadBalancer;
-	private $linkRenderer;
 	private $titleParser;
+	private $linkRenderer;
 
-	public function __construct(Config $config, ILoadBalancer $loadBalancer, LinkRenderer $linkRenderer, TitleParser $titleParser)
+	public function __construct(Config $config, ILoadBalancer $loadBalancer, TitleParser $titleParser, LinkRenderer $linkRenderer)
 	{
 		$this->config = $config;
 		$this->loadBalancer = $loadBalancer;
-		$this->linkRenderer = $linkRenderer;
 		$this->titleParser = $titleParser;
+		$this->linkRenderer = $linkRenderer;
 	}
 
 	public function onParserFirstCallInit($parser)
