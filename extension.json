@@ -30,24 +30,24 @@
 		}
 	},
 	"config": {
-		"YambeURLSplit": {
-			"description": "Where to split the URL to find the page name. Usually either /w/index.php?title= or /wiki/.",
+		"YambeURLsplit": {
+			"description": "Fragment to split the URL with to find the page title, the part right of this fragment will be used. Usually either /w/index.php?title= or /wiki/.",
 			"value": "/w/index.php?title="
 		},
-		"YambeBCDelim": {
-			"description": "Character to separate the breadcrumb elements.",
+		"YambeBCdelimiter": {
+			"description": "Character to separate the breadcrumb elements with.",
 			"value": " &gt; "
 		},
-		"YambeMaxCountBack": {
+		"YambeBCmaxCount": {
 			"description": "Maximum number of breadcrumb elements.",
 			"value": 5
 		},
-		"YambeOverflowPre": {
-			"description": "Prefix to display if the maximum number of breadcrumb elements is exceeded.",
+		"YambeBCoverflowPrefix": {
+			"description": "Prefix to use if the maximum number of breadcrumb elements is exceeded.",
 			"value": "[...]"
 		},
-		"YambeSelfLink": {
-			"description": "If true, the breadcrumb element for the current page will be a link to it, otherwise just plain text.",
+		"YambeBCselfLink": {
+			"description": "If true, the breadcrumb element for the current page will be a link to it, otherwise it will be plain text.",
 			"value": false
 		}
 	},

@@ -38,10 +38,10 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 
 	public function renderBreadcrumb($input, array $args, Parser $parser, PPFrame $frame)
 	{
-		$bcDelim = $this->config->get('YambeBCDelim');
-		$maxCountBack = $this->config->get('YambeMaxCountBack');
-		$overflowPre = $this->config->get('YambeOverflowPre');
-		$selfLink = $this->config->get('YambeSelfLink');
+		$delimiter = $this->config->get('YambeBCdelimiter');
+		$maxCount = $this->config->get('YambeBCmaxCount');
+		$overflowPrefix = $this->config->get('YambeBCoverflowPrefix');
+		$selfLink = $this->config->get('YambeBCselfLink');
 
 		// TODO: This is bad, when do we really need to invalidate the page cache?
 		$parser->getOutput()->updateCacheExpiry(0);
@@ -69,7 +69,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		array_push($bcList, $selfTitle);
 
 		try {
-			for ($count = 0; $count < $maxCountBack; ) {
+			for ($count = 0; $count < $maxCount; ) {
 				$parent = explode('|', $input);
 				foreach ($parent as &$element) {
 					$element = trim($element);
@@ -95,9 +95,9 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 					break;
 				}
 
-				if (++$count < $maxCountBack) {
+				if (++$count < $maxCount) {
 					$parentLink = $this->linkRenderer->makeKnownLink($parentTitle, $parentText);
-					$breadcrumb = $parentLink . $bcDelim . $breadcrumb;
+					$breadcrumb = $parentLink . $delimiter . $breadcrumb;
 
 					$tag = $this->getTagFromPage($parentTitle->getDBkey(), $parentTitle->getNamespace());
 					if (is_null($tag)) {
@@ -105,7 +105,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 					}
 					$input = $tag->breadcrumb;
 				} else {
-					$breadcrumb = $overflowPre . $bcDelim . $breadcrumb;
+					$breadcrumb = $overflowPrefix . $delimiter . $breadcrumb;
 				}
 			}
 		} catch (MalformedTitleException) {
@@ -120,7 +120,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	{
 		// Since there is no parent relationship available, assume the edit was started from a red-link on the parent page
 		// and extract that page from the referer URL.
-		$urlSplit = $this->config->get('YambeURLSplit');
+		$urlSplit = $this->config->get('YambeURLsplit');
 
 		if ($urlSplit == '/') {
 			$url = parse_url($_SERVER['HTTP_REFERER']);
