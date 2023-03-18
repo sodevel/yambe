@@ -9,6 +9,7 @@ use TitleParser;
 use MediaWiki\Hook\ParserFirstCallInitHook;
 use MediaWiki\Hook\EditFormPreloadTextHook;
 use Parser;
+use TitleValue;
 use MalformedTitleException;
 
 use SimpleXMLElement;
@@ -42,69 +43,76 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		$overflowPre = $this->config->get('YambeOverflowPre');
 		$selfLink = $this->config->get('YambeSelfLink');
 
+		// TODO: This is bad, when do we really need to invalidate the page cache?
 		$parser->getOutput()->updateCacheExpiry(0);
-		$pgTitle = $parser->getTitle();
 
-		// Grab the self argument if it exists
-		if (isset($args['self'])) $yambeSelf = $args['self'];
-		else $yambeSelf = $pgTitle->getText();
+		$page = $parser->getPage();
+		if (is_null($page)) {
+			return '';
+		}
+		$selfTitle = TitleValue::newFromPage($page);
+		if ($args['self'] != '') {
+			$selfText = $args['self'];
+		} else {
+			$selfText = $selfTitle->getText();
+		}
 
 		// Breadcrumb is built in reverse and ends with this rather gratuitous self-link
-		if ($selfLink) $breadcrumb = $this->linkFromText($pgTitle->getText(), $yambeSelf, $pgTitle->getNamespace());
-		else $breadcrumb = $yambeSelf;
-
-		$cur = str_replace(" ", "_", ($pgTitle->getText()));
+		if ($selfLink) {
+			$breadcrumb = $this->linkRenderer->makeKnownLink($selfTitle, $selfText);
+		} else {
+			$breadcrumb = $selfText;
+		}
 
 		// Store the current link details to prevent circular references
-		if ($pgTitle->getNsText() == "Main") $bcList[$cur] = "";
-		else $bcList[$cur] = $pgTitle->getNsText();
+		$bcList = array();
+		array_push($bcList, $selfTitle);
 
-		if ($input != "") {
-			$cont = true;
-			$count = 2; // because by first check, breadcrumb will have 2 elements!
+		try {
+			for ($count = 0; $count < $maxCountBack; ) {
+				$parent = explode('|', $input);
+				foreach ($parent as &$element) {
+					$element = trim($element);
+				}
+				unset($element);
+				$parentPath = array_shift($parent);
+				if ($parentPath == '') {
+					break;
+				}
+				$parentText = array_shift($parent);
+				if (is_null($parentText)) {
+					$parentText = '';
+				}
 
-			do {
-				// Grab the parent information from the tag
-				$parent = explode("|", $input);
-				$page   = $this->splitName(trim($parent[0]));
-
-				// Allow for use of only the parent page, no display text
-				if (count($parent) < 2) $parent[1] = "";
-
+				$parentTitle = $this->titleParser->parseTitle($parentPath);
 				// Check link not already in stored in list to prevent circular references
-				if (array_key_exists($page['title'], $bcList))
-					if ($bcList[$page['title']] == $page['namespace']) $cont = false;
-
-				if ($cont) {
-					// Store the current link details to prevent circular references
-					$bcList[str_replace(" ", "_", $page['title'])] = $page['namespace'];
-
-					// make a url from the parent
-					$url = $this->yambeMakeURL($page, trim($parent[1]));
-
-					// And if valid add to the front of the breadcrumb
-					if ($url != "") {
-						$breadcrumb = $url . $bcDelim . $breadcrumb;
-
-						// Get the next parent from the database
-						$par = $this->getTagFromPage($page['title'], $page['namespaceid']);
-
-						// Check to see if we've tracked back too far
-						if ($count >= $maxCountBack) {
-							$cont = false;
-							if ($par['data'] != "")
-								$breadcrumb = $overflowPre . $bcDelim . $breadcrumb;
-						} else {
-							$page['title'] = str_replace(" ", "_", $page['title']);
-
-							$input = $par['data'];
-							if ($input == "")
-								$cont = false;
-						}
+				foreach ($bcList as $element) {
+					if ($parentTitle->isSameLinkAs($element)) {
+						break 2;
 					}
 				}
-				$count++;
-			} while ($cont); // Loop back to get next parent
+				array_push($bcList, $parentTitle);
+				// Don't add breadcrumbs to non-existent pages,
+				// can't continue the breadcrumb chain if the parent page doesn't exist
+				if (!$this->pageExists($parentTitle->getDBkey(), $parentTitle->getNamespace())) {
+					break;
+				}
+
+				if (++$count < $maxCountBack) {
+					$parentLink = $this->linkRenderer->makeKnownLink($parentTitle, $parentText);
+					$breadcrumb = $parentLink . $bcDelim . $breadcrumb;
+
+					$tag = $this->getTagFromPage($parentTitle->getDBkey(), $parentTitle->getNamespace());
+					if (!$tag['exists']) {
+						break;
+					}
+					$input = $tag['data'];
+				} else {
+					$breadcrumb = $overflowPre . $bcDelim . $breadcrumb;
+				}
+			}
+		} catch (MalformedTitleException) {
+			// Ignore
 		}
 
 		// Encapsulate the final breadcrumb in its div and send it back to the parser
