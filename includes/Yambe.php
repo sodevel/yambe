@@ -153,19 +153,16 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	}
 
 
-	private function pageExists($page, $nsID = 0)
+	private function pageExists($pageKey, $pageNs = 0)
 	{
-		$page = str_replace(" ", "_", $page);
-
 		$db = $this->loadBalancer->getConnection(ILoadBalancer::DB_REPLICA);
-
 		if (
 			!$db->newSelectQueryBuilder()
 				->select('page_id')
 				->from('page')
 				->where([
-					"page_namespace" => $nsID,
-					"page_title" => $page
+					'page_namespace' => $pageNs,
+					'page_title' => $pageKey
 				])
 				->caller(__METHOD__)
 				->fetchField()
@@ -176,18 +173,10 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		return true;
 	}
 
-	// Get the parents tag
-	private function getTagFromPage($pgName, $ns = 0)
+	private function getTagFromPage($pageKey, $pageNs = 0)
 	{
-		$par['data'] = "";
-		$par['exists'] = false;
-		$par['self'] = "";
-
 		$db = $this->loadBalancer->getConnection(ILoadBalancer::DB_REPLICA);
-
-		$pgName = str_replace(" ", "_", $pgName);
-
-		$res = $db->newSelectQueryBuilder()
+		$row = $db->newSelectQueryBuilder()
 			->select('old_text')
 			->from('text')
 			->join('content', null, 'CONCAT(\'tt:\', old_id)=content_address')
@@ -196,17 +185,21 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			->join('revision', null, 'slot_revision_id=rev_id')
 			->join('page', null, 'rev_id=page_latest')
 			->where([
-				"page_namespace" => $ns,
-				"page_title" => $pgName
+				'page_namespace' => $pageNs,
+				'page_title' => $pageKey
 			])
 			->caller(__METHOD__)
-			->fetchRow();
-
-		if ($res) {
-			$par = $this->yambeUnpackTag($res->old_text);
+			->fetchRow()
+		;
+		if ($row) {
+			$tag = $this->yambeUnpackTag($row->old_text);
+		} else {
+			$tag['exists'] = false;
+			$tag['self'] = '';
+			$tag['data'] = '';
 		}
 
-		return $par;
+		return $tag;
 	}
 
 	// Bit of a kludge to get data and arguments from a yambe tag
