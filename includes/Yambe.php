@@ -12,7 +12,6 @@ use Parser;
 use PPFrame;
 use TitleValue;
 use MalformedTitleException;
-
 use SimpleXMLElement;
 
 class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
@@ -104,10 +103,10 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 					$breadcrumb = $parentLink . $bcDelim . $breadcrumb;
 
 					$tag = $this->getTagFromPage($parentTitle->getDBkey(), $parentTitle->getNamespace());
-					if (!$tag['exists']) {
+					if (is_null($tag)) {
 						break;
 					}
-					$input = $tag['data'];
+					$input = $tag->breadcrumb;
 				} else {
 					$breadcrumb = $overflowPre . $bcDelim . $breadcrumb;
 				}
@@ -138,9 +137,10 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			$parentKey = $parentTitle->getDBkey();
 			$parentNs = $parentTitle->getNamespace();
 			$tag = $this->getTagFromPage($parentKey, $parentNs);
-			if ($tag['exists']) {
-				if ($tag['self'] != '') {
-					$parentText = $tag['self'];
+			if (!is_null($tag)) {
+				$selfText = $tag->breadcrumb->attributes()->{'self'};
+				if ($selfText != '') {
+					$parentText = $selfText;
 				} else {
 					$parentText = $parentTitle->getText();
 				}
@@ -194,52 +194,39 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			->fetchRow()
 		;
 		if ($row) {
-			$tag = $this->yambeUnpackTag($row->old_text);
-		} else {
-			$tag['exists'] = false;
-			$tag['self'] = '';
-			$tag['data'] = '';
+			return $this->extractTag($row->old_text);
 		}
 
-		return $tag;
+		return null;
 	}
 
-	// Bit of a kludge to get data and arguments from a yambe tag
-	private function yambeUnpackTag($text)
+	private function extractTag($text)
 	{
-		$ret['exists'] = false;
-		$ret['data'] = "";
-		$ret['self'] = "";
-		$end = false;
-
-		// Find the opening tag in the supplied text
-		$start = strpos($text, "<yambe:breadcrumb");
-
-		// Find the end of the tag
-		// Grab it and convert <yambe_breadcrumb> because simplexml doesn't like <yambe:breadcrumb>
-		if ($start !== false) {
-			$end = strpos($text, "</yambe:breadcrumb>", $start);
-			if ($end !== false) $tag = substr($text, $start, $end - $start + 19);
-			else {
-				$end = strpos($text, "/>", $start);
-				if ($end !== false) $tag = substr($text, $start, $end - $start + 2);
+		// TODO: Poor attempt to extract the tag from the text, does only return the first found one
+		$tagStart = strpos($text, "<yambe:breadcrumb");
+		if ($tagStart !== false) {
+			$tagEnd = strpos($text, "</yambe:breadcrumb>", $tagStart);
+			if ($tagEnd !== false) {
+				$tagEnd += 19;
+			} else {
+				$tagEnd = strpos($text, "/>", $tagStart);
+				if ($tagEnd !== false) {
+					$tagEnd += 2;
+				}
 			}
+			if ($tagEnd !== false) {
+				$tagValue = substr($text, $tagStart, $tagEnd - $tagStart);
 
-			if ($end !== false) {
-				$tag = str_replace("yambe:breadcrumb", "yambe_breadcrumb", $tag);
-
-				// encapsulate in standalone XML doc
-				$xmlstr = "<?xml version='1.0' standalone='yes'?><root>$tag</root>";
-
-				$xml = new SimpleXMLElement($xmlstr);
-
-				// And read the data out of it
-				$ret['self'] = $xml->yambe_breadcrumb['self'];
-				$ret['data'] = $xml->yambe_breadcrumb[0];
-				$ret['exists'] = true;
+				return new SimpleXMLElement(
+					"<?xml version='1.0' standalone='yes'?><yambe:root xmlns:yambe='https://github.com/qtiger/yambe'>$tagValue</yambe:root>",
+					0,
+					false,
+					'yambe',
+					true
+				);
 			}
 		}
 
-		return $ret;
+		return null;
 	}
 }
