@@ -25,8 +25,7 @@
 			"services": [
 				"MainConfig",
 				"DBLoadBalancer",
-				"TitleParser",
-				"LinkRenderer"
+				"TitleParser"
 			]
 		}
 	},

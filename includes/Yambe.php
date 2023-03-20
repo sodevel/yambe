@@ -7,7 +7,6 @@ use MediaWiki\Hook\EditFormPreloadTextHook;
 use Config;
 use Wikimedia\Rdbms\ILoadBalancer;
 use TitleParser;
-use MediaWiki\Linker\LinkRenderer;
 use Parser;
 use PPFrame;
 use TitleValue;
@@ -19,15 +18,13 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	private $config;
 	private $loadBalancer;
 	private $titleParser;
-	private $linkRenderer;
 
 
-	public function __construct(Config $config, ILoadBalancer $loadBalancer, TitleParser $titleParser, LinkRenderer $linkRenderer)
+	public function __construct(Config $config, ILoadBalancer $loadBalancer, TitleParser $titleParser)
 	{
 		$this->config = $config;
 		$this->loadBalancer = $loadBalancer;
 		$this->titleParser = $titleParser;
-		$this->linkRenderer = $linkRenderer;
 	}
 
 
@@ -50,6 +47,8 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		if (is_null($page)) {
 			return '';
 		}
+		$linkRenderer = $parser->getLinkRenderer();
+
 		$selfTitle = TitleValue::newFromPage($page);
 		if ($args['self'] != '') {
 			$selfText = $args['self'];
@@ -59,7 +58,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 
 		// Breadcrumb is built in reverse and ends with this rather gratuitous self-link
 		if ($selfLink) {
-			$breadcrumb = $this->linkRenderer->makeKnownLink($selfTitle, $selfText);
+			$breadcrumb = $linkRenderer->makeKnownLink($selfTitle, $selfText);
 		} else {
 			$breadcrumb = $selfText;
 		}
@@ -96,7 +95,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 				}
 
 				if (++$count < $maxCount) {
-					$parentLink = $this->linkRenderer->makeKnownLink($parentTitle, $parentText);
+					$parentLink = $linkRenderer->makeKnownLink($parentTitle, $parentText);
 					$breadcrumb = $parentLink . $delimiter . $breadcrumb;
 
 					$tag = $this->getTagFromPage($parentTitle->getDBkey(), $parentTitle->getNamespace());
