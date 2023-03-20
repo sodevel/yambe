@@ -41,9 +41,6 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		$overflowPrefix = $this->config->get('YambeBCoverflowPrefix');
 		$selfLink = $this->config->get('YambeBCselfLink');
 
-		// TODO: This is bad, when do we really need to invalidate the page cache?
-		$parser->getOutput()->updateCacheExpiry(0);
-
 		// Output nothing if maximum count is zero, this effectively disables the extension output
 		if ($maxCount <= 0) {
 			return '';
@@ -117,6 +114,11 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 					break;
 				}
 
+				// TODO: Adding a template dependency to the parent page will invalidate the parser cache of this page every time
+				//       the parent page gets changed. While this is better than disabling the parser cache completely, this
+				//       will invalidate the cache too often, it must only be invalidated when the tag on the parent page is changed.
+				//       Unfortunately, there seems to be no way to trigger only on that change.
+				$parser->getOutput()->addTemplate($parentTitle, $parentRevision->getPageId(), $parentRevision->getId());
 				$input = $tag->breadcrumb;
 			} else {
 				$breadcrumb = $overflowPrefix . $delimiter . $breadcrumb;
