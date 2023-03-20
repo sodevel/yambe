@@ -8,6 +8,7 @@
 	"version": "0.2.5",
 	"url": "https://github.com/qtiger/yambe",
 	"description": "Parser hook to show Breadcrumbs",
+	"license-name": "GPL-2.0-only",
 	"requires": {
 		"MediaWiki": ">= 1.37.0"
 	},
