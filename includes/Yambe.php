@@ -43,6 +43,11 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		// TODO: This is bad, when do we really need to invalidate the page cache?
 		$parser->getOutput()->updateCacheExpiry(0);
 
+		// Output nothing if maximum count is zero, this effectively disables the extension output
+		if ($maxCount <= 0) {
+			return '';
+		}
+
 		$page = $parser->getPage();
 		if (is_null($page)) {
 			return '';
@@ -68,7 +73,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		array_push($bcList, $selfTitle);
 
 		try {
-			for ($count = 0; $count < $maxCount; ) {
+			for ($count = 1; $count < $maxCount; ) {
 				$parent = explode('|', $input);
 				foreach ($parent as &$element) {
 					$element = trim($element);
