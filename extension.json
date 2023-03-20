@@ -1,0 +1,54 @@
+{
+	"name": "YAMBE Hierarchical Breadcrumb",
+	"type": "parserhook",
+	"author": [
+		"Ian Coleman",
+		"Steffen Olszewski"
+	],
+	"version": "0.2.5",
+	"url": "https://github.com/qtiger/yambe",
+	"description": "Parser hook to show Breadcrumbs",
+	"requires": {
+		"MediaWiki": ">= 1.35.0"
+	},
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\Yambe\\": "includes/"
+	},
+	"Hooks": {
+		"ParserFirstCallInit": "main",
+		"EditFormPreloadText": "main"
+	},
+	"HookHandlers": {
+		"main": {
+			"class": "MediaWiki\\Extension\\Yambe\\Yambe",
+			"services": [
+				"MainConfig",
+				"DBLoadBalancer",
+				"LinkRenderer"
+			]
+		}
+	},
+	"config": {
+		"YambeURLSplit": {
+			"description": "Where to split the URL to find the page name. Usually either /index.php/ or /wiki/.",
+			"value": "/index.php/"
+		},
+		"YambeBCDelim": {
+			"description": "Character to separate the breadcrumb elements.",
+			"value": " &gt; "
+		},
+		"YambeMaxCountBack": {
+			"description": "Maximum number of breadcrumb elements.",
+			"value": 5
+		},
+		"YambeOverflowPre": {
+			"description": "Prefix to display if the maximum number of breadcrumb elements is exceeded.",
+			"value": "[...]"
+		},
+		"YambeSelfLink": {
+			"description": "If true, the breadcrumb element for the current page will be a link to it, otherwise just plain text.",
+			"value": false
+		}
+	},
+	"manifest_version": 2
+}
