@@ -5,26 +5,27 @@ namespace MediaWiki\Extension\Yambe;
 use MediaWiki\Hook\ParserFirstCallInitHook;
 use MediaWiki\Hook\EditFormPreloadTextHook;
 use Config;
-use Wikimedia\Rdbms\ILoadBalancer;
-use TitleParser;
+use MediaWiki\Page\PageStore;
+use MediaWiki\Revision\RevisionLookup;
 use Parser;
 use PPFrame;
 use TitleValue;
-use MalformedTitleException;
+use MediaWiki\Revision\RevisionRecord;
+use TextContent;
 use SimpleXMLElement;
 
 class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 {
 	private $config;
-	private $loadBalancer;
-	private $titleParser;
+	private $pageStore;
+	private $revisionLookup;
 
 
-	public function __construct(Config $config, ILoadBalancer $loadBalancer, TitleParser $titleParser)
+	public function __construct(Config $config, PageStore $pageStore, RevisionLookup $revisionLookup)
 	{
 		$this->config = $config;
-		$this->loadBalancer = $loadBalancer;
-		$this->titleParser = $titleParser;
+		$this->pageStore = $pageStore;
+		$this->revisionLookup = $revisionLookup;
 	}
 
 
@@ -72,48 +73,54 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		$bcList = array();
 		array_push($bcList, $selfTitle);
 
-		try {
-			for ($count = 1; $count < $maxCount; ) {
-				$parent = explode('|', $input);
-				foreach ($parent as &$element) {
-					$element = trim($element);
-				}
-				unset($element);
-				$parentPath = array_shift($parent);
-				if ($parentPath == '') {
-					break;
-				}
-				$parentText = array_shift($parent);
+		for ($count = 1; $count < $maxCount; ) {
+			$parent = explode('|', $input);
+			foreach ($parent as &$element) {
+				$element = trim($element);
+			}
+			unset($element);
+			$parentPath = array_shift($parent);
+			if ($parentPath == '') {
+				break;
+			}
+			$parentText = array_shift($parent);
 
-				$parentTitle = $this->titleParser->parseTitle($parentPath);
-				// Check link not already in stored in list to prevent circular references
-				foreach ($bcList as $element) {
-					if ($parentTitle->isSameLinkAs($element)) {
-						break 2;
-					}
-				}
-				array_push($bcList, $parentTitle);
-				// Don't add breadcrumbs to non-existent pages,
-				// can't continue the breadcrumb chain if the parent page doesn't exist
-				if (!$this->pageExists($parentTitle->getDBkey(), $parentTitle->getNamespace())) {
-					break;
-				}
-
-				if (++$count < $maxCount) {
-					$parentLink = $linkRenderer->makeKnownLink($parentTitle, $parentText);
-					$breadcrumb = $parentLink . $delimiter . $breadcrumb;
-
-					$tag = $this->getTagFromPage($parentTitle->getDBkey(), $parentTitle->getNamespace());
-					if (is_null($tag)) {
-						break;
-					}
-					$input = $tag->breadcrumb;
-				} else {
-					$breadcrumb = $overflowPrefix . $delimiter . $breadcrumb;
+			// Don't add breadcrumbs to non-existent pages,
+			// can't continue the breadcrumb chain if the parent page doesn't exist
+			$parentPage = $this->pageStore->getPageByText($parentPath);
+			if (is_null($parentPage)) {
+				break;
+			}
+			$parentTitle = TitleValue::newFromPage($parentPage);
+			// Check link not already in stored in list to prevent circular references
+			foreach ($bcList as $element) {
+				if ($parentTitle->isSameLinkAs($element)) {
+					break 2;
 				}
 			}
-		} catch (MalformedTitleException) {
-			// Ignore
+			array_push($bcList, $parentTitle);
+
+			if (++$count < $maxCount) {
+				$parentLink = $linkRenderer->makeKnownLink($parentTitle, $parentText);
+				$breadcrumb = $parentLink . $delimiter . $breadcrumb;
+
+				$parentRevision = $this->revisionLookup->getRevisionByTitle($parentPage);
+				if (is_null($parentRevision)) {
+					break;
+				}
+				$parentContent = $parentRevision->getContent("main", RevisionRecord::RAW);
+				if (!($parentContent instanceof TextContent)) {
+					break;
+				}
+				$tag = $this->extractTag($parentContent->getText());
+				if (is_null($tag)) {
+					break;
+				}
+
+				$input = $tag->breadcrumb;
+			} else {
+				$breadcrumb = $overflowPrefix . $delimiter . $breadcrumb;
+			}
 		}
 
 		// Encapsulate the final breadcrumb in its div and send it back to the parser
@@ -133,73 +140,35 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			$parentPath = end(explode($urlSplit, $_SERVER['HTTP_REFERER']));
 		}
 
-		try {
-			$parentTitle = $this->titleParser->parseTitle($parentPath);
-			$parentKey = $parentTitle->getDBkey();
-			$parentNs = $parentTitle->getNamespace();
-			$tag = $this->getTagFromPage($parentKey, $parentNs);
-			if (!is_null($tag)) {
-				$selfText = $tag->breadcrumb->attributes()->{'self'};
-				if ($selfText != '') {
-					$parentValue = $parentKey . '|' . $selfText;
-				} else {
-					$parentValue = $parentKey;
-				}
-
-				$text = "<yambe:breadcrumb>$parentValue</yambe:breadcrumb>";
-			}
-		} catch (MalformedTitleException) {
-			// Ignore
+		$parentPage = $this->pageStore->getPageByText($parentPath);
+		if (is_null($parentPage)) {
+			return true;
 		}
+		$parentRevision = $this->revisionLookup->getRevisionByTitle($parentPage);
+		if (is_null($parentRevision)) {
+			return true;
+		}
+		$parentContent = $parentRevision->getContent("main", RevisionRecord::RAW);
+		if (!($parentContent instanceof TextContent)) {
+			return true;
+		}
+		$tag = $this->extractTag($parentContent->getText());
+		if (is_null($tag)) {
+			return true;
+		}
+
+		$parentKey = $parentPage->getDBkey();
+		$selfText = $tag->breadcrumb->attributes()->{'self'};
+		if ($selfText != '') {
+			$parentValue = $parentKey . '|' . $selfText;
+		} else {
+			$parentValue = $parentKey;
+		}
+		$text = "<yambe:breadcrumb>$parentValue</yambe:breadcrumb>";
 
 		return true;
 	}
 
-
-	private function pageExists($pageKey, $pageNs = 0)
-	{
-		$db = $this->loadBalancer->getConnection(ILoadBalancer::DB_REPLICA);
-		if (
-			!$db->newSelectQueryBuilder()
-				->select('page_id')
-				->from('page')
-				->where([
-					'page_namespace' => $pageNs,
-					'page_title' => $pageKey
-				])
-				->caller(__METHOD__)
-				->fetchField()
-		) {
-			return false;
-		}
-
-		return true;
-	}
-
-	private function getTagFromPage($pageKey, $pageNs = 0)
-	{
-		$db = $this->loadBalancer->getConnection(ILoadBalancer::DB_REPLICA);
-		$row = $db->newSelectQueryBuilder()
-			->select('old_text')
-			->from('text')
-			->join('content', null, 'CONCAT(\'tt:\', old_id)=content_address')
-			->join('slots', null, 'content_id=slot_content_id')
-			->join('slot_roles', null, 'slot_role_id=role_id AND role_name=\'main\'')
-			->join('revision', null, 'slot_revision_id=rev_id')
-			->join('page', null, 'rev_id=page_latest')
-			->where([
-				'page_namespace' => $pageNs,
-				'page_title' => $pageKey
-			])
-			->caller(__METHOD__)
-			->fetchRow()
-		;
-		if ($row) {
-			return $this->extractTag($row->old_text);
-		}
-
-		return null;
-	}
 
 	private function extractTag($text)
 	{

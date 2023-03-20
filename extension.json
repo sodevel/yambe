@@ -24,8 +24,8 @@
 			"class": "MediaWiki\\Extension\\Yambe\\Yambe",
 			"services": [
 				"MainConfig",
-				"DBLoadBalancer",
-				"TitleParser"
+				"PageStore",
+				"RevisionLookup"
 			]
 		}
 	},
