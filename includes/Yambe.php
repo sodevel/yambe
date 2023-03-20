@@ -2,17 +2,17 @@
 
 namespace MediaWiki\Extension\Yambe;
 
-use MediaWiki\Hook\ParserFirstCallInitHook;
-use MediaWiki\Hook\EditFormPreloadTextHook;
 use Config;
-use MediaWiki\Page\PageStore;
-use MediaWiki\Revision\RevisionLookup;
 use Parser;
 use PPFrame;
-use TitleValue;
-use MediaWiki\Revision\RevisionRecord;
 use TextContent;
+use TitleValue;
 use SimpleXMLElement;
+use MediaWiki\Hook\EditFormPreloadTextHook;
+use MediaWiki\Hook\ParserFirstCallInitHook;
+use MediaWiki\Page\PageStore;
+use MediaWiki\Revision\RevisionLookup;
+use MediaWiki\Revision\RevisionRecord;
 
 class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 {
