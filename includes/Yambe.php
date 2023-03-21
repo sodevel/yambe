@@ -158,12 +158,13 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		} else {
 			$parentPath = end(explode($urlSplit, $_SERVER['HTTP_REFERER']));
 		}
+		// The URL might contain encoded characters, these must be decoded first.
+		$parentPath = rawurldecode($parentPath);
 
 		// Retrieve a possible present breadcrumb tag from the parent page, it is no error if that fails.
 		// Don't insert a tag if the parent page does not contain a tag already, otherwise each new page
 		// could start a new breadcrumb chain which might be annoying.
-		// The URL might contain encoded characters, these must be decoded first.
-		$parentPage = $this->pageStore->getPageByText(rawurldecode($parentPath));
+		$parentPage = $this->pageStore->getPageByText($parentPath);
 		if (is_null($parentPage)) {
 			return true;
 		}
@@ -184,12 +185,11 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		// TODO: Why is the 'self' attribute used as display name here? According to the documentation it should
 		//       only be used for the final page. The usage of 'self' and display name could lead to the situation
 		//       that the displayed page title is different depending on if it is the last element of the chain or not.
-		$parentKey = $parentPage->getDBkey();
 		$selfText = $tag->breadcrumb->attributes()->{'self'};
 		if ($selfText != '') {
-			$parentValue = $parentKey . '|' . $selfText;
+			$parentValue = $parentPath . '|' . $selfText;
 		} else {
-			$parentValue = $parentKey;
+			$parentValue = $parentPath;
 		}
 		// Special characters must be escaped because extractTag() works with the unprocessed wikitext,
 		// unescaped this could lead to invalid XML
