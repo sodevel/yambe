@@ -41,7 +41,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		$overflowPrefix = $this->config->get('YambeBCoverflowPrefix');
 		$selfLink = $this->config->get('YambeBCselfLink');
 
-		// Output nothing if maximum count is zero, this effectively disables the extension output
+		// Output nothing if maximum count is zero, this effectively disables the extension
 		if ($maxCount <= 0) {
 			return '';
 		}
@@ -59,18 +59,20 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			$selfText = $selfTitle->getText();
 		}
 
-		// Breadcrumb is built in reverse and ends with this rather gratuitous self-link
+		// The breadcrumbs are build in reverse order and start with the current page
 		if ($selfLink) {
 			$breadcrumb = $linkRenderer->makeKnownLink($selfTitle, $selfText);
 		} else {
 			$breadcrumb = $selfText;
 		}
 
-		// Store the current link details to prevent circular references
+		// Used to store all visited pages to prevent circular references, this includes the current page
 		$bcList = array();
 		array_push($bcList, $selfTitle);
 
+		// Build the breadcrumb chain by following the parent pages
 		for ($count = 1; $count < $maxCount; ) {
+			// Extract parent page information from the breadcrumb tag content
 			$parent = explode('|', $input);
 			foreach ($parent as &$element) {
 				$element = trim($element);
@@ -82,14 +84,13 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			}
 			$parentText = array_shift($parent);
 
-			// Don't add breadcrumbs to non-existent pages,
-			// can't continue the breadcrumb chain if the parent page doesn't exist
+			// Check if the parent page exists and test for a circular reference.
+			// The breadcrumb chain can't be continued if the parent page does not exist.
 			$parentPage = $this->pageStore->getPageByText($parentPath);
 			if (is_null($parentPage)) {
 				break;
 			}
 			$parentTitle = TitleValue::newFromPage($parentPage);
-			// Check link not already in stored in list to prevent circular references
 			foreach ($bcList as $element) {
 				if ($parentTitle->isSameLinkAs($element)) {
 					break 2;
@@ -98,9 +99,11 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			array_push($bcList, $parentTitle);
 
 			if (++$count < $maxCount) {
+				// Extend the breadcrumb chain with the parent page
 				$parentLink = $linkRenderer->makeKnownLink($parentTitle, $parentText);
 				$breadcrumb = $parentLink . $delimiter . $breadcrumb;
 
+				// Retrieve the contents of the parent page to extract a possible present breadcrumb tag
 				$parentRevision = $this->revisionLookup->getRevisionByTitle($parentPage);
 				if (is_null($parentRevision)) {
 					break;
@@ -121,17 +124,18 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 				$parser->getOutput()->addTemplate($parentTitle, $parentRevision->getPageId(), $parentRevision->getId());
 				$input = $tag->breadcrumb;
 			} else {
+				// Maximum breadcrumb element count reached, finish the breadcrumb chain with the overflow prefix
 				$breadcrumb = $overflowPrefix . $delimiter . $breadcrumb;
 			}
 		}
 
-		// Encapsulate the final breadcrumb in its div and send it back to the parser
+		// Encapsulate the final breadcrumb in its div and prevent it from beeing printed
 		return "<div id='yambe' class='noprint'>$breadcrumb</div>\n";
 	}
 
 	public function onEditFormPreloadText(&$text, $title)
 	{
-		// Since there is no parent relationship available, assume the edit was started from a red-link on the parent page
+		// Since for a new page no parent relationship is available, assume the edit was started from a red-link on the parent page
 		// and extract that page from the referer URL.
 		$urlSplit = $this->config->get('YambeURLsplit');
 
@@ -142,6 +146,9 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			$parentPath = end(explode($urlSplit, $_SERVER['HTTP_REFERER']));
 		}
 
+		// Retrieve a possible present breadcrumb tag from the parent page, it is no error if that fails.
+		// Don't insert a tag if the parent page does not contain a tag already, otherwise each new page
+		// could start a new breadcrumb chain which might be annoying.
 		$parentPage = $this->pageStore->getPageByText($parentPath);
 		if (is_null($parentPage)) {
 			return true;
@@ -159,6 +166,10 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			return true;
 		}
 
+		// Construct breadcrumb tag to parent page
+		// TODO: Why is the 'self' attribute used as display name here? According to the documentation it should
+		//       only be used for the final page. The usage of 'self' and display name could lead to the situation
+		//       that the displayed page title is different depending on if it is the last element of the chain or not.
 		$parentKey = $parentPage->getDBkey();
 		$selfText = $tag->breadcrumb->attributes()->{'self'};
 		if ($selfText != '') {
