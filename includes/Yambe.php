@@ -91,11 +91,13 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			// if the page existence changes. A circular dependency must be prevented in any case.
 			$parentPage = $this->pageStore->getPageByText($parentPath);
 			if (is_null($parentPage)) {
+				$breadcrumb = "#INVALID: $parentPath#" . $delimiter . $breadcrumb;
 				break;
 			}
 			$parentTitle = TitleValue::newFromPage($parentPage);
 			foreach ($bcList as $element) {
 				if ($parentTitle->isSameLinkAs($element)) {
+					$breadcrumb = "#CIRCULAR: $parentPath#" . $delimiter . $breadcrumb;
 					break 2;
 				}
 			}
