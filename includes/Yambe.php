@@ -41,6 +41,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		$maxCount = $this->config->get('YambeBCmaxCount');
 		$overflowPrefix = $this->config->get('YambeBCoverflowPrefix');
 		$selfLink = $this->config->get('YambeBCselfLink');
+		$printable = $this->config->get('YambeBCprintable');
 
 		// Output nothing if maximum count is zero, this effectively disables the extension
 		if ($maxCount <= 0) {
@@ -130,9 +131,9 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			}
 		}
 
-		// Encapsulate the final breadcrumb in its div and prevent it from beeing printed.
+		// Encapsulate the final breadcrumb in its div.
 		// The $breadcrumb variable does contain HTML, do not escape special characters here or its content gets broken.
-		return Html::rawElement('div', ['id' => 'yambe', 'class' => 'noprint'], $breadcrumb);
+		return Html::rawElement('div', ['id' => 'yambe', 'class' => $printable ? [] : 'noprint'], $breadcrumb);
 	}
 
 	public function onEditFormPreloadText(&$text, $title)

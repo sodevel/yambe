@@ -49,6 +49,10 @@
 		"YambeBCselfLink": {
 			"description": "If true, the breadcrumb element for the current page will be a link to it, otherwise it will be plain text.",
 			"value": false
+		},
+		"YambeBCprintable": {
+			"description": "If true, the breadcrumbs will also be visible in the printable page variant, otherwise not.",
+			"value": false
 		}
 	},
 	"manifest_version": 2
