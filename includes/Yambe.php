@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\Yambe;
 
 use Config;
+use Html;
 use Parser;
 use PPFrame;
 use TextContent;
@@ -129,8 +130,9 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			}
 		}
 
-		// Encapsulate the final breadcrumb in its div and prevent it from beeing printed
-		return "<div id='yambe' class='noprint'>$breadcrumb</div>\n";
+		// Encapsulate the final breadcrumb in its div and prevent it from beeing printed.
+		// The $breadcrumb variable does contain HTML, do not escape special characters here or its content gets broken.
+		return Html::rawElement('div', ['id' => 'yambe', 'class' => 'noprint'], $breadcrumb);
 	}
 
 	public function onEditFormPreloadText(&$text, $title)
@@ -149,7 +151,8 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		// Retrieve a possible present breadcrumb tag from the parent page, it is no error if that fails.
 		// Don't insert a tag if the parent page does not contain a tag already, otherwise each new page
 		// could start a new breadcrumb chain which might be annoying.
-		$parentPage = $this->pageStore->getPageByText($parentPath);
+		// The URL might contain encoded characters, these must be decoded first.
+		$parentPage = $this->pageStore->getPageByText(rawurldecode($parentPath));
 		if (is_null($parentPage)) {
 			return true;
 		}
@@ -177,7 +180,9 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		} else {
 			$parentValue = $parentKey;
 		}
-		$text = "<yambe:breadcrumb>$parentValue</yambe:breadcrumb>";
+		// Special characters must be escaped because extractTag() works with the unprocessed wikitext,
+		// unescaped this could lead to invalid XML
+		$text = Html::element("yambe:breadcrumb", [], $parentValue);
 
 		return true;
 	}
