@@ -53,27 +53,32 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			return '';
 		}
 		$linkRenderer = $parser->getLinkRenderer();
+		// Used to store all visited pages to prevent circular references, this includes the current page
+		$bcList = array();
 
 		$selfTitle = TitleValue::newFromPage($page);
-		if ($args['self'] != '') {
-			$selfText = $args['self'];
+		$selfText = null;
+		if (array_key_exists('self', $args)) {
+			if ($args['self'] != '') {
+				$selfText = $args['self'];
+			}
 		} else {
 			$selfText = $selfTitle->getText();
 		}
-
-		// The breadcrumbs are build in reverse order and start with the current page
-		if ($selfLink) {
-			$breadcrumb = $linkRenderer->makeKnownLink($selfTitle, $selfText);
-		} else {
-			$breadcrumb = $selfText;
-		}
-
-		// Used to store all visited pages to prevent circular references, this includes the current page
-		$bcList = array();
 		array_push($bcList, $selfTitle);
 
+		// The breadcrumbs are build in reverse order and start with the current page
+		$breadcrumb = null;
+		if (!is_null($selfText)) {
+			if ($selfLink) {
+				$breadcrumb = $linkRenderer->makeKnownLink($selfTitle, $selfText);
+			} else {
+				$breadcrumb = $selfText;
+			}
+		}
+
 		// Build the breadcrumb chain by following the parent pages
-		for ($count = 1; $count < $maxCount; ) {
+		for ($count = is_null($selfText) ? 0 : 1; $count < $maxCount; ) {
 			// Extract parent page information from the breadcrumb tag content
 			$parent = explode('|', $input);
 			foreach ($parent as &$element) {
@@ -91,13 +96,13 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			// if the page existence changes. A circular dependency must be prevented in any case.
 			$parentPage = $this->pageStore->getPageByText($parentPath);
 			if (is_null($parentPage)) {
-				$breadcrumb = "#INVALID: $parentPath#" . $delimiter . $breadcrumb;
+				$breadcrumb = implode($delimiter, array_filter(["#INVALID: $parentPath#", $breadcrumb], fn($value) => !is_null($value)));
 				break;
 			}
 			$parentTitle = TitleValue::newFromPage($parentPage);
 			foreach ($bcList as $element) {
 				if ($parentTitle->isSameLinkAs($element)) {
-					$breadcrumb = "#CIRCULAR: $parentPath#" . $delimiter . $breadcrumb;
+					$breadcrumb = implode($delimiter, array_filter(["#CIRCULAR: $parentPath#", $breadcrumb], fn($value) => !is_null($value)));
 					break 2;
 				}
 			}
@@ -106,7 +111,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			if (++$count < $maxCount) {
 				// Extend the breadcrumb chain with the parent page, register the created link as dependency
 				$parentLink = $parentPage->exists() ? $linkRenderer->makeKnownLink($parentTitle, $parentText) : $linkRenderer->makeBrokenLink($parentTitle, $parentText);
-				$breadcrumb = $parentLink . $delimiter . $breadcrumb;
+				$breadcrumb = implode($delimiter, array_filter([$parentLink, $breadcrumb], fn($value) => !is_null($value)));
 				$parser->getOutput()->addLink($parentTitle, $parentPage->getId());
 
 				// Retrieve the contents of the parent page to extract a possible present breadcrumb tag,
@@ -132,7 +137,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 				$input = $tag->breadcrumb;
 			} else {
 				// Maximum breadcrumb element count reached, finish the breadcrumb chain with the overflow prefix
-				$breadcrumb = $overflowPrefix . $delimiter . $breadcrumb;
+				$breadcrumb = implode($delimiter, array_filter([$overflowPrefix, $breadcrumb], fn($value) => !is_null($value)));
 			}
 		}
 
