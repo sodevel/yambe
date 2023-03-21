@@ -78,7 +78,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		}
 
 		// Build the breadcrumb chain by following the parent pages
-		for ($count = is_null($selfText) ? 0 : 1; $count < $maxCount; ) {
+		for ($count = is_null($selfText) ? 0 : 1; $count < $maxCount;) {
 			// Extract parent page information from the breadcrumb tag content
 			$parent = explode('|', $input);
 			foreach ($parent as &$element) {
@@ -96,13 +96,13 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			// if the page existence changes. A circular dependency must be prevented in any case.
 			$parentPage = $this->pageStore->getPageByText($parentPath);
 			if (is_null($parentPage)) {
-				$breadcrumb = implode($delimiter, array_filter(["#INVALID: $parentPath#", $breadcrumb], fn($value) => !is_null($value)));
+				$breadcrumb = implode($delimiter, array_filter(["#INVALID: $parentPath#", $breadcrumb], fn ($value) => !is_null($value)));
 				break;
 			}
 			$parentTitle = TitleValue::newFromPage($parentPage);
 			foreach ($bcList as $element) {
 				if ($parentTitle->isSameLinkAs($element)) {
-					$breadcrumb = implode($delimiter, array_filter(["#CIRCULAR: $parentPath#", $breadcrumb], fn($value) => !is_null($value)));
+					$breadcrumb = implode($delimiter, array_filter(["#CIRCULAR: $parentPath#", $breadcrumb], fn ($value) => !is_null($value)));
 					break 2;
 				}
 			}
@@ -111,7 +111,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			if (++$count < $maxCount) {
 				// Extend the breadcrumb chain with the parent page, register the created link as dependency
 				$parentLink = $parentPage->exists() ? $linkRenderer->makeKnownLink($parentTitle, $parentText) : $linkRenderer->makeBrokenLink($parentTitle, $parentText);
-				$breadcrumb = implode($delimiter, array_filter([$parentLink, $breadcrumb], fn($value) => !is_null($value)));
+				$breadcrumb = implode($delimiter, array_filter([$parentLink, $breadcrumb], fn ($value) => !is_null($value)));
 				$parser->getOutput()->addLink($parentTitle, $parentPage->getId());
 
 				// Retrieve the contents of the parent page to extract a possible present breadcrumb tag,
@@ -120,7 +120,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 				if (is_null($parentRevision)) {
 					break;
 				}
-				$parentContent = $parentRevision->getContent("main", RevisionRecord::RAW);
+				$parentContent = $parentRevision->getContent('main', RevisionRecord::RAW);
 				if (!($parentContent instanceof TextContent)) {
 					break;
 				}
@@ -137,7 +137,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 				$input = $tag->breadcrumb;
 			} else {
 				// Maximum breadcrumb element count reached, finish the breadcrumb chain with the overflow prefix
-				$breadcrumb = implode($delimiter, array_filter([$overflowPrefix, $breadcrumb], fn($value) => !is_null($value)));
+				$breadcrumb = implode($delimiter, array_filter([$overflowPrefix, $breadcrumb], fn ($value) => !is_null($value)));
 			}
 		}
 
@@ -171,7 +171,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		if (is_null($parentRevision)) {
 			return true;
 		}
-		$parentContent = $parentRevision->getContent("main", RevisionRecord::RAW);
+		$parentContent = $parentRevision->getContent('main', RevisionRecord::RAW);
 		if (!($parentContent instanceof TextContent)) {
 			return true;
 		}
@@ -193,7 +193,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 		}
 		// Special characters must be escaped because extractTag() works with the unprocessed wikitext,
 		// unescaped this could lead to invalid XML
-		$text = Html::element("yambe:breadcrumb", [], $parentValue);
+		$text = Html::element('yambe:breadcrumb', [], $parentValue);
 
 		return true;
 	}
@@ -202,13 +202,13 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 	private function extractTag($text)
 	{
 		// TODO: Poor attempt to extract the tag from the text, does only return the first found one
-		$tagStart = strpos($text, "<yambe:breadcrumb");
+		$tagStart = strpos($text, '<yambe:breadcrumb');
 		if ($tagStart !== false) {
-			$tagEnd = strpos($text, "</yambe:breadcrumb>", $tagStart);
+			$tagEnd = strpos($text, '</yambe:breadcrumb>', $tagStart);
 			if ($tagEnd !== false) {
 				$tagEnd += 19;
 			} else {
-				$tagEnd = strpos($text, "/>", $tagStart);
+				$tagEnd = strpos($text, '/>', $tagStart);
 				if ($tagEnd !== false) {
 					$tagEnd += 2;
 				}
