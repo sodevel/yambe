@@ -7,7 +7,7 @@
 	],
 	"version": "0.2.5",
 	"url": "https://github.com/qtiger/yambe",
-	"description": "Parser hook to show Breadcrumbs",
+	"description": "Parser hook to show breadcrumbs",
 	"license-name": "GPL-2.0-only",
 	"requires": {
 		"MediaWiki": ">= 1.37.0"
@@ -35,7 +35,7 @@
 			"value": "/w/index.php?title="
 		},
 		"YambeBCdelimiter": {
-			"description": "Character to separate the breadcrumb elements with.",
+			"description": "String to separate the breadcrumb elements with.",
 			"value": " &gt; "
 		},
 		"YambeBCmaxCount": {
