@@ -86,8 +86,9 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			}
 			$parentText = array_shift($parent);
 
-			// Check if the parent page exists and test for a circular reference.
-			// The breadcrumb chain can't be continued if the parent page does not exist.
+			// Check if the parent page is valid, this does not check if the parent page does exist.
+			// The parent page does not need to exist, the link dependency will invalide the cache
+			// if the page existence changes. A circular dependency must be prevented in any case.
 			$parentPage = $this->pageStore->getPageByText($parentPath);
 			if (is_null($parentPage)) {
 				break;
@@ -101,11 +102,13 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 			array_push($bcList, $parentTitle);
 
 			if (++$count < $maxCount) {
-				// Extend the breadcrumb chain with the parent page
-				$parentLink = $linkRenderer->makeKnownLink($parentTitle, $parentText);
+				// Extend the breadcrumb chain with the parent page, register the created link as dependency
+				$parentLink = $parentPage->exists() ? $linkRenderer->makeKnownLink($parentTitle, $parentText) : $linkRenderer->makeBrokenLink($parentTitle, $parentText);
 				$breadcrumb = $parentLink . $delimiter . $breadcrumb;
+				$parser->getOutput()->addLink($parentTitle, $parentPage->getId());
 
-				// Retrieve the contents of the parent page to extract a possible present breadcrumb tag
+				// Retrieve the contents of the parent page to extract a possible present breadcrumb tag,
+				// the chain cannot continue if no tag is present
 				$parentRevision = $this->revisionLookup->getRevisionByTitle($parentPage);
 				if (is_null($parentRevision)) {
 					break;
