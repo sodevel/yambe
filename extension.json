@@ -6,7 +6,7 @@
 		"Steffen Olszewski"
 	],
 	"version": "0.2.5",
-	"url": "https://github.com/qtiger/yambe",
+	"url": "https://github.com/sodevel/yambe",
 	"description": "Parser hook to show breadcrumbs",
 	"license-name": "GPL-2.0-only",
 	"requires": {

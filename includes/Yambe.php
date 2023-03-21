@@ -217,7 +217,7 @@ class Yambe implements ParserFirstCallInitHook, EditFormPreloadTextHook
 				$tagValue = substr($text, $tagStart, $tagEnd - $tagStart);
 
 				return new SimpleXMLElement(
-					"<?xml version='1.0' standalone='yes'?><yambe:root xmlns:yambe='https://github.com/qtiger/yambe'>$tagValue</yambe:root>",
+					"<?xml version='1.0' standalone='yes'?><yambe:root xmlns:yambe='https://github.com/sodevel/yambe'>$tagValue</yambe:root>",
 					0,
 					false,
 					'yambe',
